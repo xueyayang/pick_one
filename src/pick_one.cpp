@@ -4,15 +4,29 @@
 #include <unordered_map>
 
 
-std::unordered_map<std::string, test_fun>& getCaseDB() {
-    static std::unordered_map<std::string, test_fun> caseDB;
-    return caseDB;
+typedef std::unordered_map<std::string, test_fun> CASE_FUN;
+typedef std::unordered_map< std::string, CASE_FUN > UNIT_CASEFUN;
+
+// TODO: 新建MAP 与 查询指定的case， 应该分开
+//       在 PUSH_CASE 中使用， 与 main 中使用该函数，含义是不一样的
+using std::string;
+CASE_FUN& getCaseDB(string unit_name, string case_name, test_fun f_ptr) {
+	static UNIT_CASEFUN unitDB;
+
+	auto find_unit = unitDB.find(unit_name);
+	if(find_unit != unitDB.end()){
+		return find_unit->second;
+	}
+	else{
+		unitDB[unit_name][case_name] = f_ptr;
+		return unitDB[unit_name];
+	}
 }
 
 // Use assignment to run this function. tricky
 int PUSH_CASE(std::string unit_name, std::string case_name, test_fun f_ptr)
 { 
-    auto &M = getCaseDB();
+    auto &M = getCaseDB(unit_name, case_name, f_ptr);
     M.insert(std::make_pair(case_name, f_ptr));
     return 0;
 } 
@@ -51,7 +65,7 @@ int RUN_ERIC_CASE(int argc, char** argv)
         auto n = case_name.find('*'); 
         if( n != std::string::npos){ // multi cases
             std::string subStr = case_name.substr(0, n);
-            auto &M = getCaseDB();
+            auto &M = getCaseDB(unit_name, case_name, nullptr);
             for(auto p = M.begin(); p != M.end(); ++p){
                 auto nn = p->first.find(subStr);
                 if( nn != std::string::npos){
@@ -60,13 +74,13 @@ int RUN_ERIC_CASE(int argc, char** argv)
             }
         }
         else{ // single case
-            auto &M = getCaseDB();
+            auto &M = getCaseDB(unit_name, case_name, nullptr);
             auto p = M.find(case_name);
             if(p != M.end()){
                 p->second();
             }
             else{
-                std::cout<< "no case with name: " << case_name << "\n";
+                std::cout<< "no case with name: " << unit_name << "." <<case_name << "\n";
             }
         }
     }
